@@ -20,3 +20,57 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <http://www.gnu.org/licenses/>.
 #
+
+import numpy as np
+import emcee
+import subprocess
+
+positive = (0.0, np.inf)
+plusone = (0.0,1.0)
+plusminusone = (-1.0, 1.0)
+
+bounds = {
+    'mu' : plusone,
+    'mu-library' : plusone,
+    'mu-somatic' : plusone,
+    'mu-entropy' : positive,
+    'theta' : positive,
+    'lib-bias' : positive,
+    'lib-error-entropy' : positive,
+    'lib-error' : plusone,
+    'lib-overdisp-hom' : plusone,
+    'lib-overdisp-het' : plusone
+    'asc-het' : plusminusone,
+    'asc-hom' : plusminusone,
+    'asc-hap' : plusminusone
+}
+
+def loglike(modelparams, inputparams):
+    out = subprocess.run(['dng','loglike'] + params + inputparams, stdout=subprocess.PIPE)
+    return float(out.stdout.split()[1])
+
+def logprior(params):
+    if all([between(v,bounds[p][0],bounds[p][1]) for p,v in params]):
+        return 0.0
+    else:
+        return -np.inf
+
+def logp(modelparams, inputparams):
+    lp = logprior(modelparams)
+    if not np.isfinite(lp):
+        return -np.inf
+    else:
+        return lp + loglike(modelparams, inputparams)
+
+def between(param, lowerlim, upperlim):
+    return lowerlim <= param <= upperlim
+
+def parseargs():
+    #TODO
+
+def main():
+    print
+
+if __name__ == '__main__':
+    main()
+
