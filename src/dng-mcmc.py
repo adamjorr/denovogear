@@ -36,16 +36,16 @@ bounds = {
     'mu' : plusone,
     'mu-library' : plusone,
     'mu-somatic' : plusone,
-    'mu-entropy' : positive,
+    'mu-alleles' : positive,
     'theta' : positive,
     'lib-bias' : positive,
-    'lib-error-entropy' : positive,
+    'lib-error-alleles' : positive,
     'lib-error' : plusone,
     'lib-overdisp-hom' : plusone,
     'lib-overdisp-het' : plusone,
-    'asc-het' : plusminusone,
-    'asc-hom' : plusminusone,
-    'asc-hap' : plusminusone
+    'ref-bias-het' : plusminusone,
+    'ref-bias-hom' : plusminusone,
+    'ref-bias-hap' : plusminusone
 }
 
 def loglike(modelparams, inputparams):
