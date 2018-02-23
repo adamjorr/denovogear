@@ -82,14 +82,41 @@ def parseargs():
     parser = argparse.ArgumentParser(
         description = 'MCMC model parameter estimation for DeNovoGear.',
         epilog = '''All other parameters, such as inputs, will be directly passed to dng loglike.
-        Use "dng help loglike" for more information.''')
+        Use "dng help loglike" for more information.
+        To specify a parameter as a constant that will not be optimized but always passed directly to DeNovoGear,
+        specify it with ++ instead of --. For example, `dng-mcmc.py --theta=0.1 ++mu=1e-9`''',
+        allow_abbrev = False
+        )
+    modelparams = parser.add_argument_group("Model Parameters",
+        description = '''Model parameters to estimate via MCMC.
+        A value must be given for each parameter;
+        this value will be used to initialize a maximum likelihood parameter search.
+        The parameters that result from this search are then used to initialize the Markov chains.
+        To specify a parameter as a constant that is not to be optimized, specify it with ++ instead of --.
+        As a consequence, do not use filenames or parameter values that begin with ++.
+        It will probably break something.
+        ''')
     for param in bounds:
-        parser.add_argument("--" + param)
-    # inputs = parser.add_mutually_exclusive_group(required = True)
-    # inputs.add_argument("-s","--samfiles")
-    # inputs.add_argument("--input", nargs = '*')
-    # parser.add_argument("-p","--ped", required = True)
-    return parser.parse_known_args()
+        modelparams.add_argument("--" + param)
+    mcmcparams = parser.add_argument_group("MCMC Parameters",
+        description = '''Parameters that alter how the MCMC is carried out or the output.
+        ''')
+    mcmcparams.add_argument("--cornerplot",
+        help = "If specified, will save a corner plot to file CORNERPLOT")
+    mcmcparams.add_argument("--chainplot",
+        help = "If specified, will save a plot of the Markov chains to file CHAINPLOT")
+    mcmcparams.add_argument("--mlonly",
+        help = "Only perform a maximum likelihood search; do not do an MCMC",
+        action = "store_true")
+    mcmcparams.add_argument("-t","--threads",
+        help = "Number of threads to use [default: 1]",
+        default = 1)
+    modelargs, otherargs = parser.parse_known_args()
+    modelparams = vars(modelargs) #convert Namespace to dict
+    progargs = {k : modelparams.pop(k) for k,v in modelparams.items() if k in ["cornerplot","chainplot","mlonly","threads"]}
+    modelparams = {str(k).replace('_','-') : float(v) for k,v in modelparams.items() if v is not None}
+    otherargs = [str(v).replace('++','--',1) if v[0:2] == '++' else v for v in otherargs]
+    return modelparams, progargs, otherargs
 
 def noneify(value):
     if not np.isfinite(value):
@@ -124,7 +151,7 @@ def run_mcmc(modelparams, inputparams, threads = 1, nwalkers = 10, ballradius = 
     sampler.run_mcmc(pos,numsteps)
     return sampler
 
-def plot_walkers(sampler, labels):
+def plot_walkers(sampler, labels, filename):
     fig, axes = plt.subplots(len(labels), figsize=(10,7), sharex=True)
     samples = sampler.chain
     for i in range(len(labels)):
@@ -137,23 +164,24 @@ def plot_walkers(sampler, labels):
         axes[-1].set_xlabel("step number")
     else:
         axes.set_xlabel("step number")
-    plt.show()
+    plt.savefig(filename)
 
-def plot_corner(sampler, labels):
+def plot_corner(sampler, labels, filename):
     corner.corner(sampler.flatchain, labels = labels)
-    plt.show()
+    plt.savefig(filename)
 
 def main():
-    modelargs, otherargs = parseargs()
-    modelparams = vars(modelargs) #convert Namespace to dict
-    modelparams = {str(k).replace('_','-') : float(v) for k,v in modelparams.items() if v is not None}
-    # print(loglike(modelparams, otherargs))
+    modelargs, progargs, otherargs = parseargs()
     ml = ml_estimate(modelparams, otherargs)
-    sampler = run_mcmc(modelparams, otherargs, threads = 4)
+    if progargs["mlonly"] is True:
+        print(ml)
+        exit()
+    sampler = run_mcmc(modelparams, otherargs, threads = progargs["threads"])
     labels = list(modelparams.keys())
-    plot_walkers(sampler, labels)
-    plot_corner(sampler, labels)
-
+    if "cornerplot" in progargs:
+        plot_corner(sampler, labels, progargs["cornerplot"])
+    if "chainplot" in progargs:
+        plot_walkers(sampler, labels, progargs["chainplot"])
 
 if __name__ == '__main__':
     main()
