@@ -25,6 +25,8 @@ import subprocess
 import argparse
 import numpy as np
 import scipy.optimize as op
+import matplotlib.pyplot as plt
+import corner
 import emcee
 
 
@@ -102,13 +104,55 @@ def ml_estimate(modelparams, inputparams):
     result = op.minimize(nll, init, args=(inputparams), bounds = bds)
     return dict(zip(params, result["x"]))
 
+def lnprob(theta, params, inputparams):
+    return logp(dict(zip(params, theta)),inputparams)
+
+'''
+Modelparams should be initialized to the initial value of the mcmc.
+Nwalkers is the number of walkers and is passed to the ensemble.
+We initialize the ensemble in a gaussian ball around the initial values.
+Ballradius is the radius of that ball.
+'''
+def run_mcmc(modelparams, inputparams, threads = 1, nwalkers = 10, ballradius = 1e-3, burnin=10, numsteps = 100):
+    params, initvalues = zip(*modelparams.items())
+    ndim = len(params)
+    init = [(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)]
+    # lnprob = lambda theta, *inputparams: logp(dict(zip(params, theta)), list(inputparams))
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args = [params,inputparams], threads = threads)
+    pos, prob, state = sampler.run_mcmc(init, burnin)
+    sampler.reset()
+    sampler.run_mcmc(pos,numsteps)
+    return sampler
+
+def plot_walkers(sampler, labels):
+    fig, axes = plt.subplots(len(labels), figsize=(10,7), sharex=True)
+    samples = sampler.chain
+    for i in range(len(labels)):
+        ax=(axes[i] if len(labels) != 1 else axes) #handle when there is only 1 axis
+        ax.plot(samples[:,:,i],"k", alpha = 0.3)
+        ax.set_xlim(0,len(samples))
+        ax.set_ylabel(labels[i])
+        ax.yaxis.set_label_coords(-0.1,0.5)
+    if len(labels) != 1: #handle when there is only 1 axis
+        axes[-1].set_xlabel("step number")
+    else:
+        axes.set_xlabel("step number")
+    plt.show()
+
+def plot_corner(sampler, labels):
+    corner.corner(sampler.flatchain, labels = labels)
+    plt.show()
+
 def main():
     modelargs, otherargs = parseargs()
     modelparams = vars(modelargs) #convert Namespace to dict
-    modelparams = {str(k).replace('_','-') : v for k,v in modelparams.items() if v is not None}
+    modelparams = {str(k).replace('_','-') : float(v) for k,v in modelparams.items() if v is not None}
     # print(loglike(modelparams, otherargs))
     ml = ml_estimate(modelparams, otherargs)
-    print(ml)
+    sampler = run_mcmc(modelparams, otherargs, threads = 4)
+    labels = list(modelparams.keys())
+    plot_walkers(sampler, labels)
+    plot_corner(sampler, labels)
 
 
 if __name__ == '__main__':
