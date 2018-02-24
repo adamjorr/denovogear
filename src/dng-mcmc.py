@@ -113,7 +113,8 @@ def parseargs():
         default = 1)
     modelargs, otherargs = parser.parse_known_args()
     modelparams = vars(modelargs) #convert Namespace to dict
-    progargs = {k : modelparams.pop(k) for k,v in modelparams.items() if k in ["cornerplot","chainplot","mlonly","threads"]}
+    progargs = {k : modelparams.pop(k) for k in ["cornerplot","chainplot","mlonly","threads"]}
+    progargs = {k : v for k,v in progargs.items() if v is not None}
     modelparams = {str(k).replace('_','-') : float(v) for k,v in modelparams.items() if v is not None}
     otherargs = [str(v).replace('++','--',1) if v[0:2] == '++' else v for v in otherargs]
     return modelparams, progargs, otherargs
@@ -172,12 +173,12 @@ def plot_corner(sampler, labels, filename):
 
 def main():
     modelargs, progargs, otherargs = parseargs()
-    ml = ml_estimate(modelparams, otherargs)
+    ml = ml_estimate(modelargs, otherargs)
     if progargs["mlonly"] is True:
         print(ml)
         exit()
-    sampler = run_mcmc(modelparams, otherargs, threads = progargs["threads"])
-    labels = list(modelparams.keys())
+    sampler = run_mcmc(modelargs, otherargs, threads = progargs["threads"])
+    labels = list(modelargs.keys())
     if "cornerplot" in progargs:
         plot_corner(sampler, labels, progargs["cornerplot"])
     if "chainplot" in progargs:
