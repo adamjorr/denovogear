@@ -113,7 +113,7 @@ def parseargs():
         default = 1)
     modelargs, otherargs = parser.parse_known_args()
     modelparams = vars(modelargs) #convert Namespace to dict
-    progargs = {k : modelparams.pop(k) for k in ["cornerplot","chainplot","mlonly","threads"]}
+    progargs = {k : modelparams.pop(k) for k in ["cornerplot","chainplot","mlonly","threads"]} #move program arguments out of modelparams and into progargs
     progargs = {k : v for k,v in progargs.items() if v is not None}
     modelparams = {str(k).replace('_','-') : float(v) for k,v in modelparams.items() if v is not None}
     otherargs = [str(v).replace('++','--',1) if v[0:2] == '++' else v for v in otherargs]
@@ -141,15 +141,13 @@ Nwalkers is the number of walkers and is passed to the ensemble.
 We initialize the ensemble in a gaussian ball around the initial values.
 Ballradius is the radius of that ball.
 '''
-def run_mcmc(modelparams, inputparams, threads = 1, nwalkers = 10, ballradius = 1e-3, burnin=10, numsteps = 100):
+def run_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, ballradius = 1e-3, burnin=10, numsteps = 500):
     params, initvalues = zip(*modelparams.items())
     ndim = len(params)
     init = [(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)]
     # lnprob = lambda theta, *inputparams: logp(dict(zip(params, theta)), list(inputparams))
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args = [params,inputparams], threads = threads)
-    pos, prob, state = sampler.run_mcmc(init, burnin)
-    sampler.reset()
-    sampler.run_mcmc(pos,numsteps)
+    sampler.run_mcmc(init,numsteps)
     return sampler
 
 def plot_walkers(sampler, labels, filename):
@@ -157,8 +155,8 @@ def plot_walkers(sampler, labels, filename):
     samples = sampler.chain
     for i in range(len(labels)):
         ax=(axes[i] if len(labels) != 1 else axes) #handle when there is only 1 axis
-        ax.plot(samples[:,:,i],"k", alpha = 0.3)
-        ax.set_xlim(0,len(samples))
+        ax.plot(samples[:,:,i].T,"k", alpha = 0.3)
+        ax.set_xlim(0,samples.shape[1])
         ax.set_ylabel(labels[i])
         ax.yaxis.set_label_coords(-0.1,0.5)
     if len(labels) != 1: #handle when there is only 1 axis
@@ -177,7 +175,7 @@ def main():
     if progargs["mlonly"] is True:
         print(ml)
         exit()
-    sampler = run_mcmc(modelargs, otherargs, threads = progargs["threads"])
+    sampler = run_mcmc(modelargs, otherargs, threads = int(progargs["threads"]))
     labels = list(modelargs.keys())
     if "cornerplot" in progargs:
         plot_corner(sampler, labels, progargs["cornerplot"])
