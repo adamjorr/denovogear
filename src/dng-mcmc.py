@@ -25,6 +25,8 @@ import subprocess
 import argparse
 import numpy as np
 import scipy.optimize as op
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import corner
 import emcee
@@ -175,8 +177,8 @@ def main():
     if progargs["mlonly"] is True:
         print(ml)
         exit()
-    sampler = run_mcmc(modelargs, otherargs, threads = int(progargs["threads"]))
-    labels = list(modelargs.keys())
+    sampler = run_mcmc(ml, otherargs, threads = int(progargs["threads"]))
+    labels = list(ml.keys())
     if "cornerplot" in progargs:
         plot_corner(sampler, labels, progargs["cornerplot"])
     if "chainplot" in progargs:
