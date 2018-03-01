@@ -183,6 +183,7 @@ def main():
         plot_corner(sampler, labels, progargs["cornerplot"])
     if "chainplot" in progargs:
         plot_walkers(sampler, labels, progargs["chainplot"])
+    print("Maximum Likelihood Estimates:\n" + str(ml))
 
 if __name__ == '__main__':
     main()
