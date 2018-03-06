@@ -159,8 +159,8 @@ def plot_walkers(sampler, labels, filename):
         ax=(axes[i] if len(labels) != 1 else axes) #handle when there is only 1 axis
         ax.plot(samples[:,:,i].T,"k", alpha = 0.3)
         ax.set_xlim(0,samples.shape[1])
-        ax.set_ylabel(labels[i])
-        ax.yaxis.set_label_coords(-0.1,0.5)
+        ax.set_ylabel(labels[i].replace('-','\n'))
+        ax.yaxis.set_label_coords(-0.15,0.5)
     if len(labels) != 1: #handle when there is only 1 axis
         axes[-1].set_xlabel("step number")
     else:
