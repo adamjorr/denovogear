@@ -132,7 +132,7 @@ def ml_estimate(modelparams, inputparams):
     nll = lambda theta, inputparams: -loglike(dict(zip(params, theta)), inputparams) #make a new dictionary with updated values from the optimizer
     bds = [tuple(map(noneify,bounds[p])) for p in params]
     result = op.minimize(nll, init, args=(inputparams), bounds = bds)
-    return dict(zip(params, result["x"]))
+    return dict(zip(params, result["x"])), -result["fun"] #return dict of updated parameters and loglike of optimization
 
 def lnprob(theta, params, inputparams):
     return logp(dict(zip(params, theta)),inputparams)
@@ -173,9 +173,10 @@ def plot_corner(sampler, labels, filename):
 
 def main():
     modelargs, progargs, otherargs = parseargs()
-    ml = ml_estimate(modelargs, otherargs)
+    ml, val = ml_estimate(modelargs, otherargs)
     if progargs["mlonly"] is True:
-        print(ml)
+        print("Parameters:", ml)
+        print("Log Likelihood:", val)
         exit()
     sampler = run_mcmc(ml, otherargs, threads = int(progargs["threads"]))
     labels = list(ml.keys())
