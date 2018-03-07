@@ -152,6 +152,18 @@ def run_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, ballradius =
     sampler.run_mcmc(init,numsteps)
     return sampler
 
+def run_tempered_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, ballradius = 1e-3, numsteps = 500, ntemps = 20):
+    params, initvalues = zip(*modelparams.items())
+    ndim = len(params)
+    init = [[(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)] for temp in range(ntemps)]
+    print(init.shape)
+    exit()
+    # sampler=PTSampler(ntemps, nwalkers, ndim, logl, logp)
+    ll = lambda theta, params, inputparams: loglike(dict(zip(params, theta)),inputparams)
+    lprio = lambda theta, params: logprior(dict(zip(params,theta)))
+    sampler = emcee.PTSampler(ntemps, nwalkers, ndim, ll, lprio, loglargs = [params, inputparams], logpargs = [params])
+    sampler.run_mcmc(init,numsteps)
+    
 def plot_walkers(sampler, labels, filename):
     fig, axes = plt.subplots(len(labels), figsize=(10,7), sharex=True)
     samples = sampler.chain
@@ -178,13 +190,21 @@ def main():
         print("Parameters:", ml)
         print("Log Likelihood:", val)
         exit()
-    sampler = run_mcmc(ml, otherargs, threads = int(progargs["threads"]))
+    # sampler = run_mcmc(ml, otherargs, threads = int(progargs["threads"]))
+    sampler = run_tempered_mcmc(ml, otherargs, threads = int(progargs["threads"]))
+    print("Chain shape: ",sampler.chain.shape)
     labels = list(ml.keys())
     if "cornerplot" in progargs:
         plot_corner(sampler, labels, progargs["cornerplot"])
     if "chainplot" in progargs:
         plot_walkers(sampler, labels, progargs["chainplot"])
     print("Maximum Likelihood Estimates:\n" + str(ml))
+    print("Maximum Likelihood:", str(val))
+    largestindex = np.argmax(sampler.lnlikelihood)
+    largestlike = sampler.lnlikelihood[largestindex]
+    largestvalues = sampler.chain[largestindex]
+    print("Largest Likelihood Found in MCMC:", str(largestlike))
+    print("Parameters at Largest Likelihood:\n" + str(dict(zip(labels, largestvalues))))
 
 if __name__ == '__main__':
     main()
