@@ -155,15 +155,12 @@ def run_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, ballradius =
 def run_tempered_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, ballradius = 1e-3, numsteps = 500, ntemps = 20):
     params, initvalues = zip(*modelparams.items())
     ndim = len(params)
-    init = [[(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)] for temp in range(ntemps)]
-    print(init.shape)
-    exit()
-    # sampler=PTSampler(ntemps, nwalkers, ndim, logl, logp)
+    init = np.array([[(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)] for temp in range(ntemps)])
     ll = lambda theta, params, inputparams: loglike(dict(zip(params, theta)),inputparams)
     lprio = lambda theta, params: logprior(dict(zip(params,theta)))
     sampler = emcee.PTSampler(ntemps, nwalkers, ndim, ll, lprio, loglargs = [params, inputparams], logpargs = [params])
     sampler.run_mcmc(init,numsteps)
-    
+
 def plot_walkers(sampler, labels, filename):
     fig, axes = plt.subplots(len(labels), figsize=(10,7), sharex=True)
     samples = sampler.chain
