@@ -158,12 +158,12 @@ def run_tempered_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, bal
     init = np.array([[(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)] for temp in range(ntemps)])
     ll = lambda theta, params, inputparams: loglike(dict(zip(params, theta)),inputparams)
     lprio = lambda theta, params: logprior(dict(zip(params,theta)))
-    sampler = emcee.PTSampler(ntemps, nwalkers, ndim, ll, lprio, loglargs = [params, inputparams], logpargs = [params])
+    sampler = emcee.PTSampler(ntemps, nwalkers, ndim, ll, lprio, loglargs = [params, inputparams], logpargs = [params], threads=threads)
     sampler.run_mcmc(init,numsteps)
 
 def plot_walkers(sampler, labels, filename):
     fig, axes = plt.subplots(len(labels), figsize=(10,7), sharex=True)
-    samples = sampler.chain
+    samples = sampler.chain[0,:,:,:]
     for i in range(len(labels)):
         ax=(axes[i] if len(labels) != 1 else axes) #handle when there is only 1 axis
         ax.plot(samples[:,:,i].T,"k", alpha = 0.3)
@@ -177,7 +177,7 @@ def plot_walkers(sampler, labels, filename):
     plt.savefig(filename)
 
 def plot_corner(sampler, labels, filename):
-    corner.corner(sampler.flatchain, labels = labels)
+    corner.corner(sampler.flatchain[0,:,:], labels = labels)
     plt.savefig(filename)
 
 def main():
