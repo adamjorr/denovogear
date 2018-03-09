@@ -137,6 +137,13 @@ def ml_estimate(modelparams, inputparams):
 def lnprob(theta, params, inputparams):
     return logp(dict(zip(params, theta)),inputparams)
 
+def ll(theta, params, inputparams):
+    return loglike(dict(zip(params,theta)),inputparams)
+
+def lprio(theta, params):
+    return logprior(dict(zip(params,theta)))
+
+
 '''
 Modelparams should be initialized to the initial value of the mcmc.
 Nwalkers is the number of walkers and is passed to the ensemble.
@@ -156,8 +163,6 @@ def run_tempered_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, bal
     params, initvalues = zip(*modelparams.items())
     ndim = len(params)
     init = np.array([[(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)] for temp in range(ntemps)])
-    ll = lambda theta, params, inputparams: loglike(dict(zip(params, theta)),inputparams)
-    lprio = lambda theta, params: logprior(dict(zip(params,theta)))
     sampler = emcee.PTSampler(ntemps, nwalkers, ndim, ll, lprio, loglargs = [params, inputparams], logpargs = [params], threads=threads)
     sampler.run_mcmc(init,numsteps)
 
