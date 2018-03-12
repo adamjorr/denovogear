@@ -165,6 +165,7 @@ def run_tempered_mcmc(modelparams, inputparams, threads = 1, nwalkers = 100, bal
     init = np.array([[(np.array(initvalues) + ballradius * np.random.randn(ndim)) for walker in range(nwalkers)] for temp in range(ntemps)])
     sampler = emcee.PTSampler(ntemps, nwalkers, ndim, ll, lprio, loglargs = [params, inputparams], logpargs = [params], threads=threads)
     sampler.run_mcmc(init,numsteps)
+    return sampler
 
 def plot_walkers(sampler, labels, filename):
     fig, axes = plt.subplots(len(labels), figsize=(10,7), sharex=True)
@@ -193,7 +194,7 @@ def main():
         print("Log Likelihood:", val)
         exit()
     # sampler = run_mcmc(ml, otherargs, threads = int(progargs["threads"]))
-    sampler = run_tempered_mcmc(ml, otherargs, threads = int(progargs["threads"]))
+    sampler = run_tempered_mcmc(ml, otherargs, threads = int(progargs["threads"]), nwalkers = 20, numsteps=300, ntemps=5)
     print("Chain shape: ",sampler.chain.shape)
     labels = list(ml.keys())
     if "cornerplot" in progargs:
