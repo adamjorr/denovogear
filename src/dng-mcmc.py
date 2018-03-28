@@ -175,7 +175,7 @@ def plot_walkers(sampler, labels, filename):
         ax.plot(samples[:,:,i].T,"k", alpha = 0.3)
         ax.set_xlim(0,samples.shape[1])
         ax.set_ylabel(labels[i].replace('-','\n'))
-        ax.yaxis.set_label_coords(-0.15,0.5)
+        ax.yaxis.set_label_coords(-0.1,0.5)
     if len(labels) != 1: #handle when there is only 1 axis
         axes[-1].set_xlabel("step number")
     else:
@@ -204,8 +204,8 @@ def main():
     print("Maximum Likelihood Estimates:\n" + str(ml))
     print("Maximum Likelihood:", str(val))
     largestindex = np.argmax(sampler.lnlikelihood)
-    largestlike = sampler.lnlikelihood[largestindex]
-    largestvalues = sampler.chain[largestindex]
+    largestlike = sampler.lnlikelihood.flatten()[largestindex]
+    largestvalues = sampler.chain[np.unravel_index(largestindex, dims = sampler.chain.shape[:-1])]
     print("Largest Likelihood Found in MCMC:", str(largestlike))
     print("Parameters at Largest Likelihood:\n" + str(dict(zip(labels, largestvalues))))
 
